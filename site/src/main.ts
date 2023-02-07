@@ -1,11 +1,12 @@
 import { FeatureCollection, MultiPolygon, Polygon } from 'geojson'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Status, statusColor, times } from './lotData'
+import { lotRecords, times } from './lotRecords'
+import { statusColor, type Status } from './status'
 import './style.css'
-import { postMessage, worker } from './workerWrapper'
+import { postMessage, worker, type Response } from './workerWrapper'
 
-worker.onmessage = (event) => {
+worker.onmessage = (event: MessageEvent<Response>) => {
   const { time, featureCollection: newFeatureCollection } = event.data
   if (time !== times[timeIndex]) {
     return
@@ -63,7 +64,7 @@ function setTimeIndex(newTimeIndex: number) {
 
   setDisabled(elements.beforeButton, newTimeIndex === 0)
   setDisabled(elements.afterButton, newTimeIndex === times.length - 1)
-  postMessage({ time })
+  postMessage({ time, statuses: lotRecords[time] })
   timeIndex = newTimeIndex
 }
 

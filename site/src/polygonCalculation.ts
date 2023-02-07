@@ -2,22 +2,14 @@ import difference from '@turf/difference'
 import union from '@turf/union'
 import { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson'
 import isochroneString from '../../parking_lot_isochrones_7min.geojson?raw'
-import lotRecordsJson from '../../parsed_lot_records.json'
+import { RecordStatus } from './lotRecords'
+import { parseRecordStatus, Status } from './status'
 
 const isochrones: FeatureCollection<Polygon, { id: number }> =
   JSON.parse(isochroneString)
 
-const lotRecords = lotRecordsJson as Record<
-  string,
-  Record<string, 'available' | 'few' | 'full' | 'active' | 'na'>
->
-
-export const times = Object.keys(lotRecords).sort()
-
-export type Status = 'available' | 'full' | 'unknown'
-
 export function isochroneFeatureCollection(
-  time: string,
+  statuses: Record<string, RecordStatus>,
 ): FeatureCollection<Polygon | MultiPolygon, { status: Status }> {
   const statusPolygons: Record<Status, Feature<Polygon | MultiPolygon> | null> =
     {
@@ -27,7 +19,7 @@ export function isochroneFeatureCollection(
     }
 
   for (const feature of isochrones.features) {
-    const status = statusForFeature(feature, time)
+    const status = parseRecordStatus(statuses[feature.properties.id] ?? 'na')
     if (statusPolygons[status] === null) {
       statusPolygons[status] = feature
     } else {
@@ -85,31 +77,4 @@ function nullableDifference(
     return f1
   }
   return difference(f1, f2)
-}
-
-function statusForFeature(
-  feature: Feature<Polygon, { id: number }>,
-  time: string,
-): Status {
-  switch (lotRecords[time][feature.properties.id]) {
-    case 'full':
-      return 'full'
-    case 'available':
-      return 'available'
-    case 'few':
-      return 'available'
-    default:
-      return 'unknown'
-  }
-}
-
-export function statusColor(status: Status): string {
-  switch (status) {
-    case 'available':
-      return 'green'
-    case 'full':
-      return 'red'
-    case 'unknown':
-      return 'gray'
-  }
 }
