@@ -26,3 +26,7 @@ body {
   direction: rtl;
   font-variant-numeric: tabular-nums;
 }
+
+svg g {
+  opacity: 0.4;
+}
