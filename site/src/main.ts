@@ -1,12 +1,37 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import {
-  isochroneFeatureCollection,
-  Status,
-  statusColor,
-  times,
-} from './lotData'
+import { Status, statusColor, times } from './lotData'
 import './style.css'
+import IsochroneGeometryWorker from './worker?worker'
+
+const worker = new IsochroneGeometryWorker()
+
+let timer = 0
+
+const debouncedPostMessage = (time: string) => {
+  clearTimeout(timer)
+  timer = setTimeout(() => {
+    worker.postMessage(time)
+    console.log('tick')
+  }, 300)
+}
+
+worker.onmessage = (event) => {
+  const { time, featureCollection } = event.data
+  if (time !== times[timeIndex]) {
+    return
+  }
+  if (layer) {
+    map.removeLayer(layer)
+  }
+  layer = L.geoJSON<{ status: Status }>(featureCollection, {
+    style: (feature) => ({
+      fillColor: statusColor(feature!.properties.status),
+      fillOpacity: 0.3,
+      color: 'gray',
+    }),
+  }).addTo(map)
+}
 
 const elements = {
   map: document.querySelector<HTMLDivElement>('#map')!,
@@ -15,7 +40,7 @@ const elements = {
   timeLabel: document.querySelector<HTMLDivElement>('#time')!,
 }
 
-let timeIndex = 0
+let timeIndex: number
 
 const map = L.map(elements.map, {
   center: [32.08642879334798, 34.78262901306153],
@@ -29,31 +54,23 @@ L.tileLayer(
 ).addTo(map)
 
 function setTimeIndex(newTimeIndex: number) {
-  if (layer) {
-    map.removeLayer(layer)
-  }
-
   timeIndex = newTimeIndex
   const time = times[timeIndex]
 
   elements.timeLabel.innerHTML = Intl.DateTimeFormat('he-IL', {
-    timeStyle: 'short',
-    dateStyle: 'medium',
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(new Date(time))
 
   setDisabled(elements.beforeButton, timeIndex === 0)
   setDisabled(elements.afterButton, timeIndex === times.length - 1)
-
-  layer = L.geoJSON<{ status: Status }>(isochroneFeatureCollection(time), {
-    style: (feature) => ({
-      fillColor: statusColor(feature!.properties.status),
-      fillOpacity: 0.3,
-      color: 'gray',
-    }),
-  }).addTo(map)
+  debouncedPostMessage(time)
 }
 
-setTimeIndex(0)
+setTimeIndex(128)
 
 elements.beforeButton.onclick = () => setTimeIndex(timeIndex - 1)
 elements.afterButton.onclick = () => setTimeIndex(timeIndex + 1)
