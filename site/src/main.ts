@@ -1,36 +1,27 @@
+import { FeatureCollection, MultiPolygon, Polygon } from 'geojson'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Status, statusColor, times } from './lotData'
 import './style.css'
-import IsochroneGeometryWorker from './worker?worker'
-
-const worker = new IsochroneGeometryWorker()
-
-let timer = 0
-
-const debouncedPostMessage = (time: string) => {
-  clearTimeout(timer)
-  timer = setTimeout(() => {
-    worker.postMessage(time)
-    console.log('tick')
-  }, 300)
-}
+import { postMessage, worker } from './workerWrapper'
 
 worker.onmessage = (event) => {
-  const { time, featureCollection } = event.data
+  const { time, featureCollection: newFeatureCollection } = event.data
   if (time !== times[timeIndex]) {
     return
   }
+  featureCollection = newFeatureCollection
   if (layer) {
     map.removeLayer(layer)
   }
-  layer = L.geoJSON<{ status: Status }>(featureCollection, {
+  layer = L.geoJSON<{ status: Status }>(featureCollection!, {
     style: (feature) => ({
       fillColor: statusColor(feature!.properties.status),
       fillOpacity: 0.3,
       color: 'gray',
     }),
   }).addTo(map)
+  setHidden(elements.loadingLabel, true)
 }
 
 const elements = {
@@ -38,9 +29,14 @@ const elements = {
   beforeButton: document.querySelector<HTMLDivElement>('#before')!,
   afterButton: document.querySelector<HTMLDivElement>('#after')!,
   timeLabel: document.querySelector<HTMLDivElement>('#time')!,
+  loadingLabel: document.querySelector<HTMLDivElement>('#loading')!,
 }
 
 let timeIndex: number
+let featureCollection: FeatureCollection<
+  Polygon | MultiPolygon,
+  { status: Status }
+> | null = null
 
 const map = L.map(elements.map, {
   center: [32.08642879334798, 34.78262901306153],
@@ -54,8 +50,8 @@ L.tileLayer(
 ).addTo(map)
 
 function setTimeIndex(newTimeIndex: number) {
-  timeIndex = newTimeIndex
-  const time = times[timeIndex]
+  setHidden(elements.loadingLabel, false)
+  const time = times[newTimeIndex]
 
   elements.timeLabel.innerHTML = Intl.DateTimeFormat('he-IL', {
     weekday: 'long',
@@ -65,9 +61,10 @@ function setTimeIndex(newTimeIndex: number) {
     minute: '2-digit',
   }).format(new Date(time))
 
-  setDisabled(elements.beforeButton, timeIndex === 0)
-  setDisabled(elements.afterButton, timeIndex === times.length - 1)
-  debouncedPostMessage(time)
+  setDisabled(elements.beforeButton, newTimeIndex === 0)
+  setDisabled(elements.afterButton, newTimeIndex === times.length - 1)
+  postMessage({ time })
+  timeIndex = newTimeIndex
 }
 
 setTimeIndex(128)
@@ -80,5 +77,13 @@ function setDisabled(element: HTMLElement, disabled: boolean) {
     element.setAttribute('disabled', '')
   } else {
     element.removeAttribute('disabled')
+  }
+}
+
+function setHidden(element: HTMLElement, hidden: boolean) {
+  if (hidden) {
+    element.setAttribute('hidden', '')
+  } else {
+    element.removeAttribute('hidden')
   }
 }
