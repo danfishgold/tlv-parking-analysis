@@ -1,5 +1,6 @@
 import re
 import time
+from collections import Counter
 
 import pandas as pd
 import requests
@@ -48,6 +49,7 @@ def get_all_statuses():
     except KeyError:
       statuses[id] = 'na'
 
+
   return statuses, names
 
 def job():
@@ -55,6 +57,13 @@ def job():
   nice_now = time.strftime('%D %H:%M', time.localtime())
   print(nice_now)
   statuses, names = get_all_statuses()
+  status_counts = Counter(statuses.values())
+  print(status_counts)
+
+  if status_counts['na'] + status_counts['active'] > 80:
+    print("Nothing to save :(")
+    return
+
   pd.Series(names).to_csv('lot_names.csv', header=['name'], index_label='id')
 
   new_items = [dict(id=id, status=status, time=now, nice_time=nice_now) for (id, status) in statuses.items()]
