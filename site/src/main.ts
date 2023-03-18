@@ -1,47 +1,9 @@
 import { FeatureCollection, MultiPolygon, Polygon } from 'geojson'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import mapboxgl, { GeoJSONSource } from 'mapbox-gl'
 import { lotRecords, times } from './lotRecords'
 import { isochroneFeatureCollection } from './polygonCalculation'
-import { statusColor, type Status } from './status'
+import { type Status } from './status'
 import './style.css'
-
-function resetLayers(
-  featureCollection: FeatureCollection<
-    Polygon | MultiPolygon,
-    { status: Status }
-  >,
-) {
-  if (layer) {
-    map.removeLayer(layer)
-  }
-  layer = L.layerGroup([
-    L.geoJSON<{ status: Status }>(featureCollection!, {
-      style: (feature) => ({
-        fillColor: statusColor(feature!.properties.status),
-        fillOpacity: 1,
-        stroke: false,
-      }),
-      filter: (feature) => feature.properties.status === 'unknown',
-    }),
-    L.geoJSON<{ status: Status }>(featureCollection!, {
-      style: (feature) => ({
-        fillColor: statusColor(feature!.properties.status),
-        fillOpacity: 1,
-        stroke: false,
-      }),
-      filter: (feature) => feature.properties.status === 'full',
-    }),
-    L.geoJSON<{ status: Status }>(featureCollection!, {
-      style: (feature) => ({
-        fillColor: statusColor(feature!.properties.status),
-        fillOpacity: 1,
-        stroke: false,
-      }),
-      filter: (feature) => feature.properties.status === 'available',
-    }),
-  ]).addTo(map)
-}
 
 const elements = {
   map: document.querySelector<HTMLDivElement>('#map')!,
@@ -50,18 +12,90 @@ const elements = {
   timeLabel: document.querySelector<HTMLDivElement>('#time')!,
 }
 
-let timeIndex: number
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
+mapboxgl.setRTLTextPlugin(
+  'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js',
+  () => {},
+  true,
+)
 
-const map = L.map(elements.map, {
-  center: [32.08642879334798, 34.78262901306153],
+const isochroneSourceId = 'isochrones'
+const fullIsochroneSourceId = 'full-isochrones'
+const availableIsochroneSourceId = 'available-isochrones'
+const unknownIsochroneSourceId = 'unknown-isochrones'
+
+const map = new mapboxgl.Map({
+  container: elements.map,
+  style: 'mapbox://styles/mapbox/streets-v12',
+  center: [34.78262901306153, 32.08642879334798],
   zoom: 13,
 })
 
-let layer: L.LayerGroup | null = null
+map.on('load', () => {
+  const firstLayerId = map.getStyle().layers[11].id
+  console.log(
+    map
+      .getStyle()
+      .layers.slice(7, 40)
+      .map((l) => l.id),
+  )
 
-L.tileLayer(
-  'https://stamen-tiles.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}@2x.png',
-).addTo(map)
+  map.addSource(isochroneSourceId, {
+    type: 'geojson',
+    data: isochroneFeatureCollection(lotRecords[times[0]]),
+  })
+  map.addLayer(
+    {
+      id: availableIsochroneSourceId,
+      source: isochroneSourceId,
+      type: 'fill',
+      filter: ['==', ['get', 'status'], ['string', 'available']],
+      paint: {
+        'fill-color': '#9fd49f',
+      },
+    },
+    firstLayerId,
+  )
+  map.addLayer(
+    {
+      id: fullIsochroneSourceId,
+      source: isochroneSourceId,
+      type: 'fill',
+      filter: ['==', ['get', 'status'], ['string', 'full']],
+      paint: {
+        'fill-color': '#ffb3b3',
+      },
+    },
+    availableIsochroneSourceId,
+  )
+  map.addLayer(
+    {
+      id: unknownIsochroneSourceId,
+      source: isochroneSourceId,
+      type: 'fill',
+      filter: ['==', ['get', 'status'], ['string', 'unknown']],
+      paint: {
+        'fill-color': '#b3b3b3',
+      },
+    },
+    fullIsochroneSourceId,
+  )
+})
+
+function resetLayers(
+  featureCollection: FeatureCollection<
+    Polygon | MultiPolygon,
+    { status: Status }
+  >,
+) {
+  if (!map.loaded()) {
+    return
+  }
+  const isochroneSource = map.getSource(isochroneSourceId) as GeoJSONSource
+  isochroneSource.setData(featureCollection)
+}
+
+let timeIndex: number
 
 function setTimeIndex(newTimeIndex: number) {
   timeIndex = newTimeIndex
