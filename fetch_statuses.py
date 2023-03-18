@@ -37,6 +37,13 @@ def parse_lot_link(link):
   name = link.text.strip()
   return id, name
 
+def get_lot_names():
+  r = requests.get('https://www.ahuzot.co.il/Parking/All/')
+  soup = BeautifulSoup(r.text, 'html.parser')
+  links = [link for link in soup.find('table', id='ctl10_data1').find_all('a') if 'href' in link.attrs]
+  names = {id: name for (id, name) in map(parse_lot_link, links)}
+  return names
+
 def get_all_statuses():
   r = requests.get('https://www.ahuzot.co.il/Parking/All/')
   soup = BeautifulSoup(r.text, 'html.parser')
@@ -77,6 +84,7 @@ def job():
   df.to_csv('lot_records.csv', index=False)
 
 if __name__ == '__main__':
+  print("Scheduling every half an hour")
   schedule.every().hour.at(":00").do(job)
   schedule.every().hour.at(":30").do(job)
 
