@@ -5,11 +5,11 @@ export type Status = 'available' | 'full' | 'unknown'
 export function statusColor(status: Status): string {
   switch (status) {
     case 'available':
-      return 'green'
+      return '#9fd49f'
     case 'full':
-      return 'red'
+      return '#ffb3b3'
     case 'unknown':
-      return 'gray'
+      return '#b3b3b3'
   }
 }
 
