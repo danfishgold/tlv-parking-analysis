@@ -3,9 +3,13 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useState } from 'react'
 import Map, { Layer, Source } from 'react-map-gl'
-import { earliestDate, latestDate, lotRecordsAtDate } from './lotRecords'
-import { isochroneFeatureCollection, lotPoints } from './polygonCalculation'
-import { Status, statusColor } from './status'
+import {
+  earliestDate,
+  isochroneFeatureCollectionAtDate,
+  latestDate,
+  lotPointsAtDate,
+} from './lots'
+import { LotStatus, lotStatuses, statusColor } from './status'
 
 mapboxgl.setRTLTextPlugin(
   'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js',
@@ -54,7 +58,7 @@ export function App() {
           <>
             <Source
               type='geojson'
-              data={isochroneFeatureCollection(lotRecordsAtDate(date)!)}
+              data={isochroneFeatureCollectionAtDate(date)}
             >
               <StatusLayer
                 status='available'
@@ -72,8 +76,21 @@ export function App() {
                 beforeId={fullIsochroneLayerId!}
               />
             </Source>
-            <Source type='geojson' data={lotPoints}>
-              <Layer type='circle' />
+            <Source type='geojson' data={lotPointsAtDate(date)}>
+              <Layer
+                type='circle'
+                paint={{
+                  'circle-color': [
+                    'match',
+                    ['get', 'status'],
+                    ...lotStatuses.flatMap((status) => [
+                      status,
+                      statusColor(status, 'dark'),
+                    ]),
+                    statusColor('unknown', 'dark'),
+                  ],
+                }}
+              />
             </Source>
           </>
         )}
@@ -103,7 +120,7 @@ function StatusLayer({
   beforeId,
   source,
 }: {
-  status: Status
+  status: LotStatus
   id: string
   beforeId: string
   source?: string
@@ -116,7 +133,7 @@ function StatusLayer({
       beforeId={beforeId}
       filter={['==', ['get', 'status'], ['string', status]]}
       paint={{
-        'fill-color': statusColor(status),
+        'fill-color': statusColor(status, 'light'),
       }}
     />
   )
