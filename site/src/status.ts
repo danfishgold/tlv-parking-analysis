@@ -1,6 +1,21 @@
 export const lotStatuses = ['available', 'full', 'unknown'] as const
 export type LotStatus = typeof lotStatuses[number]
 
+export function localizedLotStatus(status: string): string {
+  switch (status) {
+    case 'full':
+      return 'מלא'
+    case 'available':
+      return 'פנוי'
+    case 'few':
+      return 'מעט'
+    case 'unknown':
+      return 'לא ידוע'
+    default:
+      return status
+  }
+}
+
 export function parseLotStatus(status: string): LotStatus {
   switch (status) {
     case 'full':

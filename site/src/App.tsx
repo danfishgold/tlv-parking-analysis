@@ -1,15 +1,21 @@
 import { add, isEqual, sub } from 'date-fns'
-import mapboxgl from 'mapbox-gl'
+import mapboxgl, { MapLayerMouseEvent } from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useState } from 'react'
-import Map, { Layer, Source } from 'react-map-gl'
+import Map, { Layer, Popup, Source } from 'react-map-gl'
 import {
   earliestDate,
   isochroneFeatureCollectionAtDate,
   latestDate,
+  lotName,
   lotPointsAtDate,
 } from './lots'
-import { LotStatus, lotStatuses, statusColor } from './status'
+import {
+  localizedLotStatus,
+  LotStatus,
+  lotStatuses,
+  statusColor,
+} from './status'
 
 mapboxgl.setRTLTextPlugin(
   'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js',
@@ -20,14 +26,19 @@ mapboxgl.setRTLTextPlugin(
 const fullIsochroneLayerId = 'full-isochrones'
 const availableIsochroneLayerId = 'available-isochrones'
 const unknownIsochroneLayerId = 'unknown-isochrones'
+const lotPointSourceId = 'lot-points'
+const lotHoverLayerId = 'lot-hover-circles'
+
+type PopupData = {
+  longitude: number
+  latitude: number
+  lots: { id: number; rawStatus: string }[]
+}
 
 export function App() {
   const [firstLayerId, setFirstLayerId] = useState<string | null>(null)
   const [date, setDate] = useState(earliestDate)
-  const [popup, setPopup] = useState<{
-    latitude: number
-    longitude: number
-  } | null>(null)
+  const [popup, setPopup] = useState<PopupData | null>(null)
 
   const timeString = Intl.DateTimeFormat('he-IL', {
     weekday: 'long',
@@ -36,6 +47,28 @@ export function App() {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
+
+  const onMouseChange = (event: MapLayerMouseEvent) => {
+    const newPopup = popupForEvent(event)
+    const oldLotIds = (popup?.lots ?? []).map((lot) => lot.id)
+    const newLotIds = (newPopup?.lots ?? []).map((lot) => lot.id)
+    for (const id of oldLotIds) {
+      event.target.removeFeatureState({
+        source: lotPointSourceId,
+        id,
+      })
+    }
+    for (const id of newLotIds) {
+      event.target.setFeatureState(
+        {
+          source: lotPointSourceId,
+          id,
+        },
+        { hover: true },
+      )
+    }
+    setPopup(newPopup)
+  }
 
   return (
     <>
@@ -53,6 +86,10 @@ export function App() {
           console.log(event.target.getStyle().layers[11].id)
           setFirstLayerId(event.target.getStyle().layers[11].id)
         }}
+        interactiveLayerIds={[lotHoverLayerId]}
+        onMouseEnter={onMouseChange}
+        onMouseMove={onMouseChange}
+        onMouseLeave={onMouseChange}
       >
         {firstLayerId && (
           <>
@@ -76,7 +113,16 @@ export function App() {
                 beforeId={fullIsochroneLayerId!}
               />
             </Source>
-            <Source type='geojson' data={lotPointsAtDate(date)}>
+            <Source
+              type='geojson'
+              data={lotPointsAtDate(date)}
+              id={lotPointSourceId}
+            >
+              <Layer
+                type='circle'
+                id={lotHoverLayerId}
+                paint={{ 'circle-opacity': 0, 'circle-radius': 10 }}
+              />
               <Layer
                 type='circle'
                 paint={{
@@ -89,9 +135,30 @@ export function App() {
                     ]),
                     statusColor('unknown', 'dark'),
                   ],
+                  'circle-radius': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    10,
+                    5,
+                  ],
                 }}
               />
             </Source>
+            {popup && (
+              <Popup
+                longitude={popup.longitude}
+                latitude={popup.latitude}
+                closeButton={false}
+              >
+                <div dir='rtl'>
+                  {popup.lots.map((lot) => (
+                    <p key={lot.id}>{`${lotName(lot.id)}: ${localizedLotStatus(
+                      lot.rawStatus,
+                    )}`}</p>
+                  ))}
+                </div>
+              </Popup>
+            )}
           </>
         )}
       </Map>
@@ -137,4 +204,23 @@ function StatusLayer({
       }}
     />
   )
+}
+
+function popupForEvent(event: MapLayerMouseEvent): PopupData | null {
+  const lots = (event.features ?? [])
+    .map((feature) => ({
+      id: feature.properties?.id,
+      rawStatus: feature.properties?.rawStatus,
+    }))
+    .filter((lot) => lot.id && lot.rawStatus)
+
+  if (lots.length === 0) {
+    return null
+  }
+
+  return {
+    longitude: event.lngLat.lng,
+    latitude: event.lngLat.lat,
+    lots,
+  }
 }
