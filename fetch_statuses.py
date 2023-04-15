@@ -1,13 +1,15 @@
+import json
 import re
 import time
 from collections import Counter
 
-import pandas as pd
 import requests
 import schedule
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+# these lot ids always return 'active' or 'na'
+low_priority_lot_ids = {'19','20','25','26','41','46','47','53','54','55','56','57','58','59','60','62','63','64','65','67','68','69','70','72','73','74','75','76','77','78','79','80','81','84','85','86','87','88','89','90','91','96','108','110','114','124','126','132','133','134','135'}
 
 def get_status(id: str) -> str:
   r = requests.get(f'https://www.ahuzot.co.il/Parking/ParkingDetails/?ID={id}')
@@ -44,13 +46,16 @@ def get_lot_names():
   names = {id: name for (id, name) in map(parse_lot_link, links)}
   return names
 
-def get_all_statuses():
+def get_all_statuses(low_priority_lot_ids = set()):
   r = requests.get('https://www.ahuzot.co.il/Parking/All/')
   soup = BeautifulSoup(r.text, 'html.parser')
   links = [link for link in soup.find('table', id='ctl10_data1').find_all('a') if 'href' in link.attrs]
   names = {id: name for (id, name) in map(parse_lot_link, links)}
+  high_priority_ids = set(names.keys()).difference(low_priority_lot_ids)
+  low_priority_ids = set(names.keys()).intersection(low_priority_lot_ids)
+  ids = list(high_priority_ids) + list(low_priority_ids)
   statuses = dict()
-  for id in tqdm(names.keys()):
+  for id in tqdm(ids):
     try:
       statuses[id] = get_status(id)
     except KeyError:
@@ -61,27 +66,29 @@ def get_all_statuses():
 
 def job():
   now = time.time()
-  nice_now = time.strftime('%D %H:%M', time.localtime())
-  print(nice_now)
-  statuses, names = get_all_statuses()
+  formatted_now = time.strftime('%D %H:%M', time.localtime())
+  print(formatted_now)
+  statuses, names = get_all_statuses(low_priority_lot_ids)
   status_counts = Counter(statuses.values())
   print(status_counts)
 
-  if status_counts['na'] + status_counts['active'] > 80:
+  if not statuses:
     print("Nothing to save :(")
     return
 
-  pd.Series(names).to_csv('lot_names.csv', header=['name'], index_label='id')
+  with open('lotNames.json', 'w') as f:
+    json.dump(names, f, ensure_ascii=False)
 
-  new_items = [dict(id=id, status=status, time=now, nice_time=nice_now) for (id, status) in statuses.items()]
-  new_df = pd.DataFrame(new_items)
   try:
-    df = pd.read_csv('lot_records.csv')
+    with open('lotRecords.json', 'r') as f:
+      records = json.load(f)
   except FileNotFoundError:
-    df = pd.DataFrame(columns=['id', 'status', 'time', 'nice_time'])
+    records = dict()
 
-  df = pd.concat([df, new_df], ignore_index=True)
-  df.to_csv('lot_records.csv', index=False)
+  records[now] = statuses
+
+  with open('lotRecords.json', 'w') as f:
+    json.dump(records, f)
 
 if __name__ == '__main__':
   print("Scheduling every half an hour")
