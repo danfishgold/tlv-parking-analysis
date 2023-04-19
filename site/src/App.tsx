@@ -1,9 +1,10 @@
-import { add, isEqual, sub } from 'date-fns'
+import { add, isAfter, isBefore, isEqual, startOfDay, sub } from 'date-fns'
 import mapboxgl, { MapLayerMouseEvent } from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { useState } from 'react'
+import { ChangeEvent, useState } from 'react'
 import Map, { Layer, Popup, Source } from 'react-map-gl'
 import {
+  days,
   earliestDate,
   isochroneFeatureCollectionAtDate,
   latestDate,
@@ -41,9 +42,6 @@ export function App() {
   const [popup, setPopup] = useState<PopupData | null>(null)
 
   const timeString = Intl.DateTimeFormat('he-IL', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
@@ -169,6 +167,7 @@ export function App() {
         >
           קודם
         </button>
+        <DaySelect date={date} setDate={setDate} />
         <span>{timeString}</span>
         <button
           disabled={isEqual(date, latestDate)}
@@ -178,6 +177,44 @@ export function App() {
         </button>
       </div>
     </>
+  )
+}
+
+function DaySelect({
+  date,
+  setDate,
+}: {
+  date: Date
+  setDate: (date: Date) => void
+}) {
+  const formatter = Intl.DateTimeFormat('he-IL', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+  })
+
+  const onChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const newDate = new Date(+event.target.value)
+    newDate.setHours(date.getHours())
+    newDate.setMinutes(date.getMinutes())
+
+    if (isBefore(newDate, earliestDate)) {
+      setDate(earliestDate)
+    } else if (isAfter(newDate, latestDate)) {
+      setDate(latestDate)
+    } else {
+      setDate(newDate)
+    }
+  }
+
+  return (
+    <select value={startOfDay(date).getTime()} onChange={onChange}>
+      {days.map((day) => (
+        <option key={day.getTime()} value={day.getTime()}>
+          {formatter.format(day)}
+        </option>
+      ))}
+    </select>
   )
 }
 

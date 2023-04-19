@@ -1,4 +1,4 @@
-import { format, parse, roundToNearestMinutes } from 'date-fns'
+import { format, parse, roundToNearestMinutes, startOfDay } from 'date-fns'
 import { FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson'
 import lotRecordsJson from '../../lotRecords.json'
 import isochroneString from '../../parking_lot_isochrones_500m.geojson?raw'
@@ -36,6 +36,17 @@ const recordDates = Array.from(lotRecords.keys()).sort()
 
 export const earliestDate = parse(recordDates.at(0)!, keyFormat, new Date())
 export const latestDate = parse(recordDates.at(-1)!, keyFormat, new Date())
+
+export const days: Date[] = Array.from(
+  new Set(
+    recordDates
+      .map((dateString) => parse(dateString, keyFormat, new Date()))
+      .map(startOfDay)
+      .map((date) => format(date, keyFormat)),
+  ),
+)
+  .sort()
+  .map((dateString) => parse(dateString, keyFormat, new Date()))
 
 // LOT RECORD PARSING
 
