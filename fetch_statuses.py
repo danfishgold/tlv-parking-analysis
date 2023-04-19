@@ -64,22 +64,19 @@ def get_all_statuses(high_priority_lot_ids = set()):
       statuses[id] = 'na'
 
 
-  return statuses, names
+  return statuses
 
 def job():
   now = time.time()
   formatted_now = time.strftime('%D %H:%M', time.localtime())
   print(formatted_now)
-  statuses, names = get_all_statuses(high_priority_lot_ids)
+  statuses = get_all_statuses(high_priority_lot_ids)
   status_counts = Counter(statuses.values())
   print(status_counts)
 
   if not statuses:
     print("Nothing to save :(")
     return
-
-  with open('lotNames.json', 'w') as f:
-    json.dump(names, f, ensure_ascii=False)
 
   try:
     with open('lotRecords.json', 'r') as f:
