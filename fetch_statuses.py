@@ -30,6 +30,8 @@ def get_status(id: str) -> str:
     return 'active'
   elif src == '/pics/ParkingIcons/male.png':
     return 'full'
+  elif src == '/pics/ParkingIcons/sagur.png':
+    return 'closed'
   else:
     return src
 

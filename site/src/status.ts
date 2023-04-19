@@ -11,6 +11,8 @@ export function localizedLotStatus(status: string): string {
       return 'מעט'
     case 'unknown':
       return 'לא ידוע'
+    case 'closed':
+      return 'סגור'
     default:
       return status
   }
@@ -24,6 +26,8 @@ export function parseLotStatus(status: string): LotStatus {
       return 'available'
     case 'few':
       return 'available'
+    case 'closed':
+      return 'full'
     default:
       return 'unknown'
   }
