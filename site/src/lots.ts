@@ -1,20 +1,31 @@
 import { format, parse, roundToNearestMinutes } from 'date-fns'
 import { FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson'
-import lotNamesJson from '../../lotNames.json'
 import lotRecordsJson from '../../lotRecords.json'
 import isochroneString from '../../parking_lot_isochrones_500m.geojson?raw'
 import { LotStatus, parseLotStatus } from './status'
 
-// LOT NAMES
-
-const lotNames = lotNamesJson as Record<number, string>
-
 // ISOCHRONES
 
-const isochrones: FeatureCollection<
-  Polygon,
-  { id: number; lot_latitude: number; lot_longitude: number }
-> = JSON.parse(isochroneString)
+type JsonLotProperties = {
+  distance: number
+  ahuzot_id: number | null
+  gis_id: number
+  ahuzot_name: string | null
+  gis_name: string
+  address: string
+  lot_type: 'paid' | 'close to home'
+  lot_latitude: number
+  lot_longitude: number
+  nearest_node: number
+}
+
+export type LotProperties = JsonLotProperties & {
+  rawStatus: string
+  status: LotStatus
+}
+
+const isochrones: FeatureCollection<Polygon, JsonLotProperties> =
+  JSON.parse(isochroneString)
 
 // LOT RECORDS
 
@@ -66,19 +77,22 @@ function lotRecordsAtDate(date: Date): Record<string, LotStatus> | null {
 
 export function isochroneFeatureCollectionAtDate(
   date: Date,
-): FeatureCollection<
-  Polygon | MultiPolygon,
-  { status: LotStatus; id: number }
-> {
+): FeatureCollection<Polygon | MultiPolygon, LotProperties> {
   const statuses = lotRecordsAtDate(date) ?? {}
   return {
     type: 'FeatureCollection',
     features: isochrones.features.map((f) => ({
       ...f,
       properties: {
-        id: f.properties.id,
-        rawStatus: statuses[f.properties.id] ?? 'na',
-        status: parseLotStatus(statuses[f.properties.id] ?? 'na'),
+        ...f.properties,
+        rawStatus: f.properties.ahuzot_id
+          ? statuses[f.properties.ahuzot_id] ?? 'na'
+          : 'na',
+        status: parseLotStatus(
+          f.properties.ahuzot_id
+            ? statuses[f.properties.ahuzot_id] ?? 'na'
+            : 'na',
+        ),
       },
     })),
   }
@@ -86,7 +100,7 @@ export function isochroneFeatureCollectionAtDate(
 
 export function lotPointsAtDate(
   date: Date,
-): FeatureCollection<Point, { id: number; status: LotStatus }> {
+): FeatureCollection<Point, LotProperties> {
   const statuses = lotRecordsAtDate(date) ?? {}
 
   return {
@@ -98,15 +112,17 @@ export function lotPointsAtDate(
         coordinates: [f.properties.lot_longitude, f.properties.lot_latitude],
       },
       properties: {
-        id: f.properties.id,
-        rawStatus: statuses[f.properties.id] ?? 'na',
-        status: parseLotStatus(statuses[f.properties.id] ?? 'na'),
+        ...f.properties,
+        rawStatus: f.properties.ahuzot_id
+          ? statuses[f.properties.ahuzot_id] ?? 'na'
+          : 'na',
+        status: parseLotStatus(
+          f.properties.ahuzot_id
+            ? statuses[f.properties.ahuzot_id] ?? 'na'
+            : 'na',
+        ),
       },
-      id: f.properties.id,
+      id: f.properties.gis_id,
     })),
   }
-}
-
-export function lotName(lotId: number): string | null {
-  return lotNames[lotId] ?? null
 }

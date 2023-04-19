@@ -7,8 +7,8 @@ import {
   earliestDate,
   isochroneFeatureCollectionAtDate,
   latestDate,
-  lotName,
   lotPointsAtDate,
+  LotProperties,
 } from './lots'
 import {
   localizedLotStatus,
@@ -32,7 +32,7 @@ const lotHoverLayerId = 'lot-hover-circles'
 type PopupData = {
   longitude: number
   latitude: number
-  lots: { id: number; rawStatus: string }[]
+  lots: LotProperties[]
 }
 
 export function App() {
@@ -50,8 +50,8 @@ export function App() {
 
   const onMouseChange = (event: MapLayerMouseEvent) => {
     const newPopup = popupForEvent(event)
-    const oldLotIds = (popup?.lots ?? []).map((lot) => lot.id)
-    const newLotIds = (newPopup?.lots ?? []).map((lot) => lot.id)
+    const oldLotIds = (popup?.lots ?? []).map((lot) => lot.gis_id)
+    const newLotIds = (newPopup?.lots ?? []).map((lot) => lot.gis_id)
     for (const id of oldLotIds) {
       event.target.removeFeatureState({
         source: lotPointSourceId,
@@ -152,7 +152,7 @@ export function App() {
               >
                 <div dir='rtl'>
                   {popup.lots.map((lot) => (
-                    <p key={lot.id}>{`${lotName(lot.id)}: ${localizedLotStatus(
+                    <p key={lot.gis_id}>{`${lot.gis_name}: ${localizedLotStatus(
                       lot.rawStatus,
                     )}`}</p>
                   ))}
@@ -208,11 +208,8 @@ function StatusLayer({
 
 function popupForEvent(event: MapLayerMouseEvent): PopupData | null {
   const lots = (event.features ?? [])
-    .map((feature) => ({
-      id: feature.properties?.id,
-      rawStatus: feature.properties?.rawStatus,
-    }))
-    .filter((lot) => lot.id && lot.rawStatus)
+    .map((feature) => feature.properties)
+    .filter((lot) => lot?.gis_id && lot?.rawStatus) as LotProperties[]
 
   if (lots.length === 0) {
     return null

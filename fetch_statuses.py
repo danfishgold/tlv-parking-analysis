@@ -8,8 +8,8 @@ import schedule
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-# these lot ids always return 'active' or 'na'
-low_priority_lot_ids = {'19','20','25','26','41','46','47','53','54','55','56','57','58','59','60','62','63','64','65','67','68','69','70','72','73','74','75','76','77','78','79','80','81','84','85','86','87','88','89','90','91','96','108','110','114','124','126','132','133','134','135'}
+# these lot are relevant for Tel Aviv's GIS night lots layer
+high_priority_lot_ids = {'19','20','25','26','41','46','47','53','54','55','56','57','58','59','60','62','63','64','65','67','68','69','70','72','73','74','75','76','77','78','79','80','81','84','85','86','87','88','89','90','91','96','108','110','114','124','126','132','133','134','135'}
 
 def get_status(id: str) -> str:
   r = requests.get(f'https://www.ahuzot.co.il/Parking/ParkingDetails/?ID={id}')
@@ -46,13 +46,13 @@ def get_lot_names():
   names = {id: name for (id, name) in map(parse_lot_link, links)}
   return names
 
-def get_all_statuses(low_priority_lot_ids = set()):
+def get_all_statuses(high_priority_lot_ids = set()):
   r = requests.get('https://www.ahuzot.co.il/Parking/All/')
   soup = BeautifulSoup(r.text, 'html.parser')
   links = [link for link in soup.find('table', id='ctl10_data1').find_all('a') if 'href' in link.attrs]
   names = {id: name for (id, name) in map(parse_lot_link, links)}
-  high_priority_ids = set(names.keys()).difference(low_priority_lot_ids)
-  low_priority_ids = set(names.keys()).intersection(low_priority_lot_ids)
+  high_priority_ids = set(names.keys()).intersection(high_priority_lot_ids)
+  low_priority_ids = set(names.keys()).difference(high_priority_lot_ids)
   ids = list(high_priority_ids) + list(low_priority_ids)
   statuses = dict()
   for id in tqdm(ids):
@@ -68,7 +68,7 @@ def job():
   now = time.time()
   formatted_now = time.strftime('%D %H:%M', time.localtime())
   print(formatted_now)
-  statuses, names = get_all_statuses(low_priority_lot_ids)
+  statuses, names = get_all_statuses(high_priority_lot_ids)
   status_counts = Counter(statuses.values())
   print(status_counts)
 
