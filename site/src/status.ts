@@ -1,5 +1,6 @@
 export const lotStatuses = ['available', 'full', 'unknown'] as const
-export type LotStatus = typeof lotStatuses[number]
+export type LotStatus = (typeof lotStatuses)[number]
+import { Expression as MapboxStyleExpression } from 'mapbox-gl'
 
 export function localizedLotStatus(status: string): string {
   switch (status) {
@@ -31,6 +32,33 @@ export function parseLotStatus(status: string): LotStatus {
     default:
       return 'unknown'
   }
+}
+
+export function statusGrade(status: LotStatus): number | null {
+  switch (status) {
+    case 'available':
+      return 1
+    case 'full':
+      return 0
+    case 'unknown':
+      return null
+  }
+}
+
+export function statusGradeColorGradient(
+  variant: 'light' | 'dark',
+): MapboxStyleExpression {
+  return [
+    'interpolate-lab',
+    ['linear'],
+    ['get', 'grade'],
+    -1,
+    statusColor('unknown', variant),
+    0,
+    statusColor('full', variant),
+    1,
+    statusColor('available', variant),
+  ]
 }
 
 export function statusColor(

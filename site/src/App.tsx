@@ -1,22 +1,18 @@
 import { add, isAfter, isBefore, isEqual, startOfDay, sub } from 'date-fns'
+import { countBy } from 'lodash-es'
 import mapboxgl, { MapLayerMouseEvent } from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { ChangeEvent, useState } from 'react'
 import Map, { Layer, Popup, Source } from 'react-map-gl'
 import {
+  LotProperties,
   days,
   earliestDate,
   isochroneFeatureCollectionAtDate,
   latestDate,
   lotPointsAtDate,
-  LotProperties,
 } from './lots'
-import {
-  localizedLotStatus,
-  LotStatus,
-  lotStatuses,
-  statusColor,
-} from './status'
+import { statusColor, statusGradeColorGradient } from './status'
 
 mapboxgl.setRTLTextPlugin(
   'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js',
@@ -24,9 +20,6 @@ mapboxgl.setRTLTextPlugin(
   true,
 )
 
-const fullIsochroneLayerId = 'full-isochrones'
-const availableIsochroneLayerId = 'available-isochrones'
-const unknownIsochroneLayerId = 'unknown-isochrones'
 const lotPointSourceId = 'lot-points'
 const lotHoverLayerId = 'lot-hover-circles'
 
@@ -93,27 +86,27 @@ export function App() {
           <>
             <Source
               type='geojson'
-              data={isochroneFeatureCollectionAtDate(date)}
+              data={isochroneFeatureCollectionAtDate({
+                type: 'dayGroup',
+                group: 'allDays',
+                time: date,
+              })}
             >
-              <StatusLayer
-                status='available'
-                id={availableIsochroneLayerId}
+              <Layer
+                type='fill'
                 beforeId={firstLayerId}
-              />
-              <StatusLayer
-                status='full'
-                id={fullIsochroneLayerId}
-                beforeId={availableIsochroneLayerId!}
-              />
-              <StatusLayer
-                status='unknown'
-                id={unknownIsochroneLayerId}
-                beforeId={fullIsochroneLayerId!}
+                paint={{
+                  'fill-color': statusGradeColorGradient('light'),
+                }}
               />
             </Source>
             <Source
               type='geojson'
-              data={lotPointsAtDate(date)}
+              data={lotPointsAtDate({
+                type: 'dayGroup',
+                group: 'allDays',
+                time: date,
+              })}
               id={lotPointSourceId}
             >
               <Layer
@@ -124,15 +117,7 @@ export function App() {
               <Layer
                 type='circle'
                 paint={{
-                  'circle-color': [
-                    'match',
-                    ['get', 'status'],
-                    ...lotStatuses.flatMap((status) => [
-                      status,
-                      statusColor(status, 'dark'),
-                    ]),
-                    statusColor('unknown', 'dark'),
-                  ],
+                  'circle-color': statusGradeColorGradient('dark'),
                   'circle-radius': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
@@ -142,21 +127,7 @@ export function App() {
                 }}
               />
             </Source>
-            {popup && (
-              <Popup
-                longitude={popup.longitude}
-                latitude={popup.latitude}
-                closeButton={false}
-              >
-                <div dir='rtl'>
-                  {popup.lots.map((lot) => (
-                    <p key={lot.gis_id}>{`${lot.gis_name}: ${localizedLotStatus(
-                      lot.rawStatus,
-                    )}`}</p>
-                  ))}
-                </div>
-              </Popup>
-            )}
+            {popup && <LotPopup popup={popup} />}
           </>
         )}
       </Map>
@@ -218,35 +189,15 @@ function DaySelect({
   )
 }
 
-function StatusLayer({
-  status,
-  id,
-  beforeId,
-  source,
-}: {
-  status: LotStatus
-  id: string
-  beforeId: string
-  source?: string
-}) {
-  return (
-    <Layer
-      source={source}
-      type='fill'
-      id={id}
-      beforeId={beforeId}
-      filter={['==', ['get', 'status'], ['string', status]]}
-      paint={{
-        'fill-color': statusColor(status, 'light'),
-      }}
-    />
-  )
-}
-
 function popupForEvent(event: MapLayerMouseEvent): PopupData | null {
-  const lots = (event.features ?? [])
-    .map((feature) => feature.properties)
-    .filter((lot) => lot?.gis_id && lot?.rawStatus) as LotProperties[]
+  const lots: LotProperties[] = (
+    (event.features ?? [])
+      .map((feature) => feature.properties)
+      .filter((lot) => lot?.statuses) as LotProperties[]
+  ).map((lot) => ({
+    ...lot,
+    statuses: JSON.parse(lot.statuses as unknown as string),
+  }))
 
   if (lots.length === 0) {
     return null
@@ -257,4 +208,57 @@ function popupForEvent(event: MapLayerMouseEvent): PopupData | null {
     latitude: event.lngLat.lat,
     lots,
   }
+}
+
+function LotPopup({ popup }: { popup: PopupData }) {
+  return (
+    <Popup
+      longitude={popup.longitude}
+      latitude={popup.latitude}
+      closeButton={false}
+    >
+      <div dir='rtl'>
+        {popup.lots.map((lot) => (
+          <PopupSectionForLot key={lot.gis_id} lot={lot} />
+        ))}
+      </div>
+    </Popup>
+  )
+}
+
+function PopupSectionForLot({ lot }: { lot: LotProperties }) {
+  const statusCounts = countBy(lot.statuses)
+
+  return (
+    <>
+      <h3>{lot.gis_name}</h3>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          width: '100px',
+          height: '15px',
+        }}
+      >
+        <div
+          style={{
+            flexGrow: statusCounts['available'] ?? 0,
+            background: statusColor('available', 'dark'),
+          }}
+        />
+        <div
+          style={{
+            flexGrow: statusCounts['full'] ?? 0,
+            background: statusColor('full', 'dark'),
+          }}
+        />
+        <div
+          style={{
+            flexGrow: statusCounts['unknown'] ?? 0,
+            background: statusColor('unknown', 'dark'),
+          }}
+        />
+      </div>
+    </>
+  )
 }

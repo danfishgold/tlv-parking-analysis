@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@types/geojson": "^7946.0.10",
+    "@types/lodash-es": "^4.17.7",
     "@types/mapbox-gl": "^2.7.10",
     "date-fns": "^2.29.3",
+    "lodash-es": "^4.17.21",
     "mapbox-gl": "^2.13.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
