@@ -1,12 +1,23 @@
-import { add, isAfter, isBefore, isEqual, startOfDay, sub } from 'date-fns'
 import { countBy } from 'lodash-es'
 import mapboxgl, { MapLayerMouseEvent } from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { ChangeEvent, useState } from 'react'
 import Map, { Layer, Popup, Source } from 'react-map-gl'
-import { mergeDates } from './dates'
-import { isochroneFeatureCollectionAtDate, lotPointsAtDate } from './features'
-import { LotProperties, days, earliestDate, latestDate } from './lots'
+import {
+  RecordDate,
+  dateOptions,
+  decodeDate,
+  encodeDate,
+  formattedDay,
+  formattedTime,
+  nextDate,
+  previousDate,
+} from './dates'
+import {
+  LotProperties,
+  isochroneFeatureCollectionAtDate,
+  lotPointsAtDate,
+} from './features'
 import { statusColor, statusGradeColorGradient } from './status'
 
 mapboxgl.setRTLTextPlugin(
@@ -26,13 +37,8 @@ type PopupData = {
 
 export function App() {
   const [firstLayerId, setFirstLayerId] = useState<string | null>(null)
-  const [date, setDate] = useState(earliestDate)
+  const [date, setDate] = useState<RecordDate>(dateOptions[0])
   const [popup, setPopup] = useState<PopupData | null>(null)
-
-  const timeString = Intl.DateTimeFormat('he-IL', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
 
   const onMouseChange = (event: MapLayerMouseEvent) => {
     const newPopup = popupForEvent(event)
@@ -81,11 +87,7 @@ export function App() {
           <>
             <Source
               type='geojson'
-              data={isochroneFeatureCollectionAtDate({
-                type: 'dayGroup',
-                group: 'allDays',
-                time: date,
-              })}
+              data={isochroneFeatureCollectionAtDate(date)}
             >
               <Layer
                 type='fill'
@@ -97,11 +99,7 @@ export function App() {
             </Source>
             <Source
               type='geojson'
-              data={lotPointsAtDate({
-                type: 'dayGroup',
-                group: 'allDays',
-                time: date,
-              })}
+              data={lotPointsAtDate(date)}
               id={lotPointSourceId}
             >
               <Layer
@@ -126,23 +124,32 @@ export function App() {
           </>
         )}
       </Map>
-      <div id='controls'>
-        <button
-          disabled={isEqual(date, earliestDate)}
-          onClick={() => setDate(sub(date, { minutes: 30 }))}
-        >
-          קודם
-        </button>
-        <DaySelect date={date} setDate={setDate} />
-        <span>{timeString}</span>
-        <button
-          disabled={isEqual(date, latestDate)}
-          onClick={() => setDate(add(date, { minutes: 30 }))}
-        >
-          אחר כך
-        </button>
-      </div>
+      <Controls date={date} setDate={setDate} />
     </>
+  )
+}
+
+function Controls({
+  date,
+  setDate,
+}: {
+  date: RecordDate
+  setDate: (date: RecordDate) => void
+}) {
+  const next = nextDate(date)
+  const prev = previousDate(date)
+
+  return (
+    <div id='controls'>
+      <button disabled={!prev} onClick={() => setDate(prev!)}>
+        קודם
+      </button>
+      <DaySelect date={date} setDate={setDate} />
+      <span>{formattedTime(date)}</span>
+      <button disabled={!next} onClick={() => setDate(next!)}>
+        אחר כך
+      </button>
+    </div>
   )
 }
 
@@ -150,35 +157,22 @@ function DaySelect({
   date,
   setDate,
 }: {
-  date: Date
-  setDate: (date: Date) => void
+  date: RecordDate
+  setDate: (date: RecordDate) => void
 }) {
-  const formatter = Intl.DateTimeFormat('he-IL', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-  })
-
   const onChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const newDate = mergeDates({
-      day: new Date(+event.target.value),
-      time: date,
+    const newDate = decodeDate({
+      dateString: event.target.value,
+      baseDate: date,
     })
-
-    if (isBefore(newDate, earliestDate)) {
-      setDate(earliestDate)
-    } else if (isAfter(newDate, latestDate)) {
-      setDate(latestDate)
-    } else {
-      setDate(newDate)
-    }
+    setDate(newDate)
   }
 
   return (
-    <select value={startOfDay(date).getTime()} onChange={onChange}>
-      {days.map((day) => (
-        <option key={day.getTime()} value={day.getTime()}>
-          {formatter.format(day)}
+    <select value={encodeDate(date)} onChange={onChange}>
+      {dateOptions.map((dateOption) => (
+        <option key={encodeDate(dateOption)} value={encodeDate(dateOption)}>
+          {formattedDay(dateOption)}
         </option>
       ))}
     </select>

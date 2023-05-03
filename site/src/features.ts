@@ -11,13 +11,17 @@ import { mean, sortBy } from 'lodash-es'
 import { RecordDate, timestampsForDate } from './dates'
 import {
   JsonLotProperties,
-  LotProperties,
   isochrones,
   keyFormat,
   lotPoints,
   lotRecords,
 } from './lots'
 import { LotStatus, parseLotStatus, statusGrade } from './status'
+
+export type LotProperties = JsonLotProperties & {
+  statuses: LotStatus[]
+  grade: number
+}
 
 export function isochroneFeatureCollectionAtDate(
   date: RecordDate,

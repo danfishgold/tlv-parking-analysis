@@ -27,11 +27,6 @@ export type JsonLotProperties = {
   nearest_node: number
 }
 
-export type LotProperties = JsonLotProperties & {
-  statuses: LotStatus[]
-  grade: number
-}
-
 export const isochrones: FeatureCollection<Polygon, JsonLotProperties> =
   JSON.parse(isochroneString)
 
@@ -58,7 +53,10 @@ const recordDates = Array.from(lotRecords.keys()).sort()
 export const earliestDate = parse(recordDates.at(0)!, keyFormat, new Date())
 export const latestDate = parse(recordDates.at(-1)!, keyFormat, new Date())
 
-const dateSpan = differenceInDays(latestDate, earliestDate)
+const dateSpan = differenceInDays(
+  startOfDay(latestDate),
+  startOfDay(earliestDate),
+)
 export const days: Date[] = range(dateSpan + 1)
   .map((dayIndex) => addDays(earliestDate, dayIndex))
   .map(startOfDay)
