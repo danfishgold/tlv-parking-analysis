@@ -12,7 +12,7 @@ from tqdm import tqdm
 high_priority_lot_ids = {'19','20','25','26','41','46','47','53','54','55','56','57','58','59','60','62','63','64','65','67','68','69','70','72','73','74','75','76','77','78','79','80','81','84','85','86','87','88','89','90','91','96','108','110','114','124','126','132','133','134','135'}
 
 def get_status(id: str) -> str:
-  r = requests.get(f'https://www.ahuzot.co.il/Parking/ParkingDetails/?ID={id}')
+  r = requests.get(f'https://www.ahuzot.co.il/Parking/ParkingDetails/?ID={id}', timeout=10)
   soup = BeautifulSoup(r.text, 'html.parser')
   status_table = soup.find('td', class_='ParkingDetailsTable')
   if not status_table:
@@ -42,14 +42,14 @@ def parse_lot_link(link):
   return id, name
 
 def get_lot_names():
-  r = requests.get('https://www.ahuzot.co.il/Parking/All/')
+  r = requests.get('https://www.ahuzot.co.il/Parking/All/', timeout=10)
   soup = BeautifulSoup(r.text, 'html.parser')
   links = [link for link in soup.find('table', id='ctl10_data1').find_all('a') if 'href' in link.attrs]
   names = {id: name for (id, name) in map(parse_lot_link, links)}
   return names
 
 def get_all_statuses(high_priority_lot_ids = set()):
-  r = requests.get('https://www.ahuzot.co.il/Parking/All/')
+  r = requests.get('https://www.ahuzot.co.il/Parking/All/', timeout=10)
   soup = BeautifulSoup(r.text, 'html.parser')
   links = [link for link in soup.find('table', id='ctl10_data1').find_all('a') if 'href' in link.attrs]
   names = {id: name for (id, name) in map(parse_lot_link, links)}
@@ -70,9 +70,15 @@ def job():
   now = time.time()
   formatted_now = time.strftime('%D %H:%M', time.localtime())
   print(formatted_now)
-  statuses = get_all_statuses(high_priority_lot_ids)
-  status_counts = Counter(statuses.values())
-  print(status_counts)
+  try:
+    statuses = get_all_statuses(high_priority_lot_ids)
+    status_counts = Counter(statuses.values())
+    print(status_counts)
+  except KeyboardInterrupt:
+    raise KeyboardInterrupt()
+  except:
+    print("Couldn't fetch statuses.")
+    statuses = dict()
 
   if not statuses:
     print("Nothing to save :(")
