@@ -5,14 +5,8 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import { ChangeEvent, useState } from 'react'
 import Map, { Layer, Popup, Source } from 'react-map-gl'
 import { mergeDates } from './dates'
-import {
-  LotProperties,
-  days,
-  earliestDate,
-  isochroneFeatureCollectionAtDate,
-  latestDate,
-  lotPointsAtDate,
-} from './lots'
+import { isochroneFeatureCollectionAtDate, lotPointsAtDate } from './features'
+import { LotProperties, days, earliestDate, latestDate } from './lots'
 import { statusColor, statusGradeColorGradient } from './status'
 
 mapboxgl.setRTLTextPlugin(

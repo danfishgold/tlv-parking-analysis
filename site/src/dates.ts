@@ -1,3 +1,5 @@
+import { days } from './lots'
+
 // DATE STUFF
 export type RecordDate =
   | { type: 'timestamp'; timestamp: Date }
@@ -5,7 +7,7 @@ export type RecordDate =
 
 type DayGroup = 'allDays' | 'weekdays' | 'weekends' | 'fridays' | 'saturdays'
 
-export function timestampsForDate(date: RecordDate, days: Date[]): Date[] {
+export function timestampsForDate(date: RecordDate): Date[] {
   switch (date.type) {
     case 'timestamp': {
       return [date.timestamp]
