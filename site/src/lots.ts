@@ -17,6 +17,7 @@ import {
 import { mean, range, sortBy } from 'lodash-es'
 import lotRecordsJson from '../../lotRecords.json'
 import isochroneString from '../../parking_lot_isochrones_500m.geojson?raw'
+import { RecordDate, timestampsForDate } from './dates'
 import { LotStatus, parseLotStatus, statusGrade } from './status'
 
 // ISOCHRONES
@@ -104,18 +105,9 @@ function parseSingleLotRecord(
 // GETTERS
 
 function lotRecordsAtDate(date: RecordDate): Record<string, LotStatus[]> {
-  switch (date.type) {
-    case 'timestamp':
-      return lotRecordsAtTimestamps([date.timestamp])
-    case 'dayGroup':
-      return lotRecordsAtTimestamps(daysInDayGroup(date.group, date.time))
-  }
-}
+  const timestamps = timestampsForDate(date, days)
+  const keys = timestamps.map((ts) => format(ts, keyFormat))
 
-function lotRecordsAtTimestamps(
-  timetamps: Date[],
-): Record<string, LotStatus[]> {
-  const keys = timetamps.map((ts) => format(ts, keyFormat))
   const recordSets = keys.map((key) => lotRecords.get(key) ?? {})
   const groupedRecords: Record<string, LotStatus[]> = {}
   for (const record of recordSets) {
@@ -163,43 +155,4 @@ export function lotPointsAtDate(
   date: RecordDate,
 ): FeatureCollection<Point, LotProperties> {
   return featureCollectionAtDate(lotPoints, date)
-}
-
-// DATE STUFF
-
-type RecordDate =
-  | { type: 'timestamp'; timestamp: Date }
-  | { type: 'dayGroup'; group: DayGroup; time: Date }
-
-type DayGroup = 'allDays' | 'weekdays' | 'weekends' | 'fridays' | 'saturdays'
-
-function dayIndexesInDayGroup(group: DayGroup): number[] {
-  switch (group) {
-    case 'allDays':
-      return [0, 1, 2, 3, 4, 5, 6]
-    case 'weekdays':
-      return [0, 1, 2, 3, 4]
-    case 'weekends':
-      return [5, 6]
-    case 'fridays':
-      return [5]
-    case 'saturdays':
-      return [6]
-  }
-}
-
-function daysInDayGroup(group: DayGroup, time: Date): Date[] {
-  const relevantDayIndexes = new Set(dayIndexesInDayGroup(group))
-  return days
-    .filter((day) => relevantDayIndexes.has(day.getDay()))
-    .map((day) => mergeDates(day, time))
-}
-
-function mergeDates(day: Date, time: Date): Date {
-  const dayAtTime = new Date(day)
-  dayAtTime.setHours(time.getHours())
-  dayAtTime.setMinutes(time.getMinutes())
-  dayAtTime.setSeconds(time.getSeconds())
-  dayAtTime.setMilliseconds(time.getMilliseconds())
-  return dayAtTime
 }

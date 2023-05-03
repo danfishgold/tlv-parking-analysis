@@ -4,6 +4,7 @@ import mapboxgl, { MapLayerMouseEvent } from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { ChangeEvent, useState } from 'react'
 import Map, { Layer, Popup, Source } from 'react-map-gl'
+import { mergeDates } from './dates'
 import {
   LotProperties,
   days,
@@ -165,9 +166,10 @@ function DaySelect({
   })
 
   const onChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const newDate = new Date(+event.target.value)
-    newDate.setHours(date.getHours())
-    newDate.setMinutes(date.getMinutes())
+    const newDate = mergeDates({
+      day: new Date(+event.target.value),
+      time: date,
+    })
 
     if (isBefore(newDate, earliestDate)) {
       setDate(earliestDate)
