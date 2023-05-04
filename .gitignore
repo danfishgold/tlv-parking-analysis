@@ -1,11 +1,13 @@
-.DS_Store
 venv
 cache
 __pycache__
-metroTLV_walkshed
-*.geojson
+.ipybn_checkpoints
+
 node_modules
 dist
+
 .vscode
 .netlify
+.DS_Store
+
 .env
