@@ -26,11 +26,13 @@ import {
   statusGradeColorGradient,
 } from './status'
 
-mapboxgl.setRTLTextPlugin(
-  'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js',
-  () => {},
-  true,
-)
+if (mapboxgl.getRTLTextPluginStatus() === 'unavailable') {
+  mapboxgl.setRTLTextPlugin(
+    'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js',
+    () => {},
+    true,
+  )
+}
 
 const lotPointSourceId = 'lot-points'
 const lotHoverLayerId = 'lot-hover-circles'
