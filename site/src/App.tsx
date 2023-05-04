@@ -1,7 +1,7 @@
 import { countBy } from 'lodash-es'
 import mapboxgl, { MapLayerMouseEvent } from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { ChangeEvent, useState } from 'react'
+import { ChangeEvent, useEffect, useState } from 'react'
 import Map, { Layer, Popup, Source } from 'react-map-gl'
 import {
   RecordDate,
@@ -67,6 +67,19 @@ export function App() {
     }
     setPopup(newPopup)
   }
+
+  useEffect(() => {
+    const keyboardHandler = (event: KeyboardEvent) => {
+      if (['j', 'J', 'ח'].includes(event.key)) {
+        setDate((date) => previousDate(date) ?? date)
+      } else if (['k', 'K', 'ל'].includes(event.key)) {
+        setDate((date) => nextDate(date) ?? date)
+      }
+    }
+
+    document.addEventListener('keydown', keyboardHandler)
+    return () => document.removeEventListener('keydown', keyboardHandler)
+  }, [])
 
   return (
     <>
@@ -159,6 +172,10 @@ function Controls({
       <button disabled={!next} onClick={() => setDate(next!)}>
         אחר כך
       </button>
+      <p>
+        ניתן להשתמש במקשי <kbd>j</kbd> ו <kbd>k</kbd> כדי להזיז את השעה
+        קדימה/אחורה.
+      </p>
     </div>
   )
 }
