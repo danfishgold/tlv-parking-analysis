@@ -231,6 +231,11 @@ function PopupSectionForLot({
   return (
     <>
       <h3>{lot.gis_name}</h3>
+      {lot.lot_capacity ? (
+        <p>{`${lot.lot_capacity} מקומות חניה`}</p>
+      ) : (
+        <p>כמות מקומות חניה לא ידועה</p>
+      )}
       <p>{statusDescription(date, lot.statuses)}</p>
       {date.type === 'dayGroup' && <StatusBar statuses={lot.statuses} />}
     </>

@@ -21,6 +21,7 @@ export type JsonLotProperties = {
   ahuzot_name: string | null
   gis_name: string
   address: string
+  lot_capacity: number
   lot_type: 'paid' | 'close to home'
   lot_latitude: number
   lot_longitude: number
