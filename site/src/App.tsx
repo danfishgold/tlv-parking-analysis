@@ -51,19 +51,12 @@ export function App() {
 
   const onMouseChange = (event: MapLayerMouseEvent) => {
     const newPopup = popupForEvent(event)
-    const oldLotIds = (popup?.lots ?? []).map((lot) => lot.gis_id)
-    const newLotIds = (newPopup?.lots ?? []).map((lot) => lot.gis_id)
-    for (const id of oldLotIds) {
-      event.target.removeFeatureState({
-        source: lotPointSourceId,
-        id,
-      })
-    }
-    for (const id of newLotIds) {
+    event.target.removeFeatureState({ source: lotPointSourceId })
+    for (const lot of newPopup?.lots ?? []) {
       event.target.setFeatureState(
         {
           source: lotPointSourceId,
-          id,
+          id: lot.gis_id,
         },
         { hover: true },
       )
