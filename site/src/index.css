@@ -24,11 +24,17 @@ body {
   position: fixed;
   bottom: 20px;
   left: 20px;
+  width: 400px;
+  max-width: calc(100vw - 60px);
   background: rgba(255, 255, 255, 0.7);
   padding: 10px;
   border-radius: 4px;
   direction: rtl;
   font-variant-numeric: tabular-nums;
+}
+
+#controls p {
+  font-size: 0.75rem;
 }
 
 h3 {

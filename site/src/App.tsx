@@ -147,10 +147,14 @@ function Controls({
 
   return (
     <div id='controls'>
+      <p>
+        כל נקודה היא חניון לילה של אחוזות החוף והשטח סביבן מייצג מרחק הליכה של
+        עד 500 מטרים.
+      </p>
+      <DaySelect date={date} setDate={setDate} />
       <button disabled={!prev} onClick={() => setDate(prev!)}>
         קודם
       </button>
-      <DaySelect date={date} setDate={setDate} />
       <span>{formattedTime(date)}</span>
       <button disabled={!next} onClick={() => setDate(next!)}>
         אחר כך
