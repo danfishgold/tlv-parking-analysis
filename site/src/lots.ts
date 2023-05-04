@@ -45,22 +45,28 @@ export const lotPoints: FeatureCollection<Point, JsonLotProperties> = {
 
 // LOT RECORDS
 
-export const keyFormat = 'yyyy-MM-dd HH:mm'
+const keyFormat = 'yyyy-MM-dd HH:mm'
+
+export function parseKey(key: string): Date {
+  return parse(key, keyFormat, new Date())
+}
+
+export function formatKey(date: Date): string {
+  return format(date, keyFormat)
+}
 
 export const lotRecords = parseLotRecords(lotRecordsJson)
 const recordDates = Array.from(lotRecords.keys()).sort()
 
-export const earliestDate = parse(recordDates.at(0)!, keyFormat, new Date())
-export const latestDate = parse(recordDates.at(-1)!, keyFormat, new Date())
+export const earliestDate = parseKey(recordDates.at(0)!)
+export const latestDate = parseKey(recordDates.at(-1)!)
 export const days: Date[] = eachDayOfInterval({
   start: earliestDate,
   end: latestDate,
 })
 export const fullDays = new Set(
   Object.entries(
-    countBy(recordDates, (key) =>
-      format(startOfDay(parse(key, keyFormat, new Date())), keyFormat),
-    ),
+    countBy(recordDates, (key) => formatKey(startOfDay(parseKey(key)))),
   )
     .filter(([key, count]) => count === 48)
     .map(([key]) => key),
@@ -83,7 +89,7 @@ function parseLotRecords(
 function parseTimestampKey(timestampString: string): string {
   const parsedTimestamp = parseFloat(timestampString) * 1000
   const roundedDate = roundToNearestMinutes(parsedTimestamp, { nearestTo: 30 })
-  return format(roundedDate, keyFormat)
+  return formatKey(roundedDate)
 }
 
 function parseSingleLotRecord(

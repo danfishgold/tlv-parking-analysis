@@ -1,5 +1,5 @@
-import { addMinutes, format, isEqual, startOfDay, subMinutes } from 'date-fns'
-import { days, earliestDate, fullDays, keyFormat, latestDate } from './lots'
+import { addMinutes, isEqual, startOfDay, subMinutes } from 'date-fns'
+import { days, earliestDate, formatKey, fullDays, latestDate } from './lots'
 
 export type RecordDate =
   | { type: 'timestamp'; timestamp: Date }
@@ -31,7 +31,7 @@ export function hasPartialRecords(date: RecordDate): boolean {
     case 'dayGroup':
       return false
     case 'timestamp':
-      return !fullDays.has(format(startOfDay(date.timestamp), keyFormat))
+      return !fullDays.has(formatKey(startOfDay(date.timestamp)))
   }
 }
 

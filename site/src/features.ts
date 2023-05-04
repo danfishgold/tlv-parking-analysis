@@ -1,4 +1,3 @@
-import { format } from 'date-fns'
 import {
   Feature,
   FeatureCollection,
@@ -11,8 +10,8 @@ import { mean, sortBy } from 'lodash-es'
 import { RecordDate, timestampsForDate } from './dates'
 import {
   JsonLotProperties,
+  formatKey,
   isochrones,
-  keyFormat,
   lotPoints,
   lotRecords,
 } from './lots'
@@ -64,7 +63,7 @@ function featureCollectionAtDate<Geom extends Geometry>(
 
 function lotRecordsAtDate(date: RecordDate): Record<string, LotStatus[]> {
   const timestamps = timestampsForDate(date)
-  const keys = timestamps.map((ts) => format(ts, keyFormat))
+  const keys = timestamps.map((ts) => formatKey(ts))
 
   const recordSets = keys.map((key) => lotRecords.get(key) ?? {})
   const groupedRecords: Record<string, LotStatus[]> = {}
