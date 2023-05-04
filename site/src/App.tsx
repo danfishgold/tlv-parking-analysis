@@ -166,6 +166,24 @@ function Controls({
         כל נקודה היא חניון לילה של אחוזות החוף והשטח סביבן מייצג מרחק הליכה של
         עד 500 מטרים.
       </p>
+      <p>
+        מקרא:
+        <span
+          className='legend-marker'
+          style={{ background: statusColor('unknown', 'light') }}
+        />{' '}
+        מידע לא זמין
+        <span
+          className='legend-marker'
+          style={{ background: statusColor('full', 'light') }}
+        />{' '}
+        חניון מלא
+        <span
+          className='legend-marker'
+          style={{ background: statusColor('available', 'light') }}
+        />{' '}
+        חניון פנוי
+      </p>
       <DaySelect date={date} setDate={setDate} />
       <button disabled={!prev} onClick={() => setDate(prev!)}>
         קודם
