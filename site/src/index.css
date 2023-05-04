@@ -33,7 +33,8 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-#controls p {
+#controls p,
+#controls span {
   font-size: 0.75rem;
 }
 
