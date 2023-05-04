@@ -1,7 +1,7 @@
 import { countBy } from 'lodash-es'
 import mapboxgl, { MapLayerMouseEvent } from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { ChangeEvent, useEffect, useState } from 'react'
+import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import Map, { Layer, Popup, Source } from 'react-map-gl'
 import {
   RecordDate,
@@ -18,6 +18,7 @@ import {
   LotProperties,
   isochroneFeatureCollectionAtDate,
   lotPointsAtDate,
+  lotRecordsAtDate,
 } from './features'
 import {
   LotStatus,
@@ -40,7 +41,7 @@ const lotHoverLayerId = 'lot-hover-circles'
 type PopupData = {
   longitude: number
   latitude: number
-  lots: LotProperties[]
+  lots: Omit<LotProperties, 'statuses'>[]
 }
 
 export function App() {
@@ -228,14 +229,9 @@ function DaySelect({
 }
 
 function popupForEvent(event: MapLayerMouseEvent): PopupData | null {
-  const lots: LotProperties[] = (
-    (event.features ?? [])
-      .map((feature) => feature.properties)
-      .filter((lot) => lot?.statuses) as LotProperties[]
-  ).map((lot) => ({
-    ...lot,
-    statuses: JSON.parse(lot.statuses as unknown as string),
-  }))
+  const lots: LotProperties[] = (event.features ?? [])
+    .map((feature) => feature.properties)
+    .filter((lot) => lot?.gis_id) as LotProperties[]
 
   if (lots.length === 0) {
     return null
@@ -249,6 +245,7 @@ function popupForEvent(event: MapLayerMouseEvent): PopupData | null {
 }
 
 function LotPopup({ popup, date }: { popup: PopupData; date: RecordDate }) {
+  const records = useMemo(() => lotRecordsAtDate(date), [date])
   return (
     <Popup
       longitude={popup.longitude}
@@ -257,7 +254,14 @@ function LotPopup({ popup, date }: { popup: PopupData; date: RecordDate }) {
     >
       <div dir='rtl'>
         {popup.lots.map((lot) => (
-          <PopupSectionForLot key={lot.gis_id} lot={lot} date={date} />
+          <PopupSectionForLot
+            key={lot.gis_id}
+            lot={{
+              ...lot,
+              statuses: lot.ahuzot_id ? records[lot.ahuzot_id] ?? [] : [],
+            }}
+            date={date}
+          />
         ))}
       </div>
     </Popup>
@@ -292,9 +296,9 @@ function statusDescription(date: RecordDate, statuses: LotStatus[]): string {
       const countPart = Object.entries(counts)
         .map(([status, count]) => `${localizedLotStatus(status)} (${count})`)
         .join(', ')
-      return `מתוך ${statuses.length} פעמים ב${formattedDay(
+      return `מתוך ${statuses.length} פעמים בשעה ${formattedTime(
         date,
-      )}: ${countPart}`
+      )} ב${formattedDay(date)}: ${countPart}`
     }
     case 'timestamp': {
       if (statuses.length > 1) {

@@ -61,7 +61,9 @@ function featureCollectionAtDate<Geom extends Geometry>(
   }
 }
 
-function lotRecordsAtDate(date: RecordDate): Record<string, LotStatus[]> {
+export function lotRecordsAtDate(
+  date: RecordDate,
+): Record<string, LotStatus[]> {
   const timestamps = timestampsForDate(date)
   const keys = timestamps.map((ts) => formatKey(ts))
 
