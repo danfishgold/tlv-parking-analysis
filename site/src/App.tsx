@@ -18,7 +18,12 @@ import {
   isochroneFeatureCollectionAtDate,
   lotPointsAtDate,
 } from './features'
-import { statusColor, statusGradeColorGradient } from './status'
+import {
+  LotStatus,
+  localizedLotStatus,
+  statusColor,
+  statusGradeColorGradient,
+} from './status'
 
 mapboxgl.setRTLTextPlugin(
   'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js',
@@ -120,7 +125,7 @@ export function App() {
                 }}
               />
             </Source>
-            {popup && <LotPopup popup={popup} />}
+            {popup && <LotPopup popup={popup} date={date} />}
           </>
         )}
       </Map>
@@ -200,7 +205,7 @@ function popupForEvent(event: MapLayerMouseEvent): PopupData | null {
   }
 }
 
-function LotPopup({ popup }: { popup: PopupData }) {
+function LotPopup({ popup, date }: { popup: PopupData; date: RecordDate }) {
   return (
     <Popup
       longitude={popup.longitude}
@@ -209,46 +214,81 @@ function LotPopup({ popup }: { popup: PopupData }) {
     >
       <div dir='rtl'>
         {popup.lots.map((lot) => (
-          <PopupSectionForLot key={lot.gis_id} lot={lot} />
+          <PopupSectionForLot key={lot.gis_id} lot={lot} date={date} />
         ))}
       </div>
     </Popup>
   )
 }
 
-function PopupSectionForLot({ lot }: { lot: LotProperties }) {
-  const statusCounts = countBy(lot.statuses)
-
+function PopupSectionForLot({
+  lot,
+  date,
+}: {
+  lot: LotProperties
+  date: RecordDate
+}) {
   return (
     <>
       <h3>{lot.gis_name}</h3>
+      <p>{statusDescription(date, lot.statuses)}</p>
+      {date.type === 'dayGroup' && <StatusBar statuses={lot.statuses} />}
+    </>
+  )
+}
+
+function statusDescription(date: RecordDate, statuses: LotStatus[]): string {
+  switch (date.type) {
+    case 'dayGroup': {
+      const counts = countBy(statuses)
+      const countPart = Object.entries(counts)
+        .map(([status, count]) => `${localizedLotStatus(status)} (${count})`)
+        .join(', ')
+      return `מתוך ${statuses.length} פעמים ב${formattedDay(
+        date,
+      )}: ${countPart}`
+    }
+    case 'timestamp': {
+      if (statuses.length > 1) {
+        throw new Error(`Expected just one status for date ${date}`)
+      } else if (statuses.length === 0) {
+        return 'לא ידוע'
+      }
+      return localizedLotStatus(statuses[0])
+    }
+  }
+}
+
+function StatusBar({ statuses }: { statuses: LotStatus[] }) {
+  const statusCounts = countBy(statuses)
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        width: '100px',
+        height: '15px',
+      }}
+    >
       <div
         style={{
-          display: 'flex',
-          flexDirection: 'row',
-          width: '100px',
-          height: '15px',
+          flexGrow: statusCounts['available'] ?? 0,
+          background: statusColor('available', 'dark'),
         }}
-      >
-        <div
-          style={{
-            flexGrow: statusCounts['available'] ?? 0,
-            background: statusColor('available', 'dark'),
-          }}
-        />
-        <div
-          style={{
-            flexGrow: statusCounts['full'] ?? 0,
-            background: statusColor('full', 'dark'),
-          }}
-        />
-        <div
-          style={{
-            flexGrow: statusCounts['unknown'] ?? 0,
-            background: statusColor('unknown', 'dark'),
-          }}
-        />
-      </div>
-    </>
+      />
+      <div
+        style={{
+          flexGrow: statusCounts['full'] ?? 0,
+          background: statusColor('full', 'dark'),
+        }}
+      />
+      <div
+        style={{
+          flexGrow: statusCounts['unknown'] ?? 0,
+          background: statusColor('unknown', 'dark'),
+        }}
+      />
+    </div>
   )
 }
