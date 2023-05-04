@@ -10,6 +10,7 @@ import {
   encodeDate,
   formattedDay,
   formattedTime,
+  hasPartialRecords,
   nextDate,
   previousDate,
 } from './dates'
@@ -178,6 +179,7 @@ function DaySelect({
       {dateOptions.map((dateOption) => (
         <option key={encodeDate(dateOption)} value={encodeDate(dateOption)}>
           {formattedDay(dateOption)}
+          {hasPartialRecords(dateOption) ? ` (מידע חסר)` : ''}
         </option>
       ))}
     </select>

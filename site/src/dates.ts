@@ -1,5 +1,5 @@
-import { addMinutes, isEqual, startOfDay, subMinutes } from 'date-fns'
-import { days, earliestDate, latestDate } from './lots'
+import { addMinutes, format, isEqual, startOfDay, subMinutes } from 'date-fns'
+import { days, earliestDate, fullDays, keyFormat, latestDate } from './lots'
 
 export type RecordDate =
   | { type: 'timestamp'; timestamp: Date }
@@ -25,6 +25,15 @@ export const dateOptions: RecordDate[] = [
   })),
   ...days.map((day) => ({ type: 'timestamp' as const, timestamp: day })),
 ]
+
+export function hasPartialRecords(date: RecordDate): boolean {
+  switch (date.type) {
+    case 'dayGroup':
+      return false
+    case 'timestamp':
+      return !fullDays.has(format(startOfDay(date.timestamp), keyFormat))
+  }
+}
 
 const timeFormatter = Intl.DateTimeFormat('he-IL', {
   hour: '2-digit',

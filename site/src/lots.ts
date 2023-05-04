@@ -1,13 +1,12 @@
 import {
-  addDays,
-  differenceInDays,
+  eachDayOfInterval,
   format,
   parse,
   roundToNearestMinutes,
   startOfDay,
 } from 'date-fns'
 import { FeatureCollection, Point, Polygon } from 'geojson'
-import { range } from 'lodash-es'
+import { countBy } from 'lodash-es'
 import lotRecordsJson from '../../lotRecords.json'
 import isochroneString from '../../parking_lot_isochrones_500m.geojson?raw'
 import { LotStatus, parseLotStatus } from './status'
@@ -53,14 +52,19 @@ const recordDates = Array.from(lotRecords.keys()).sort()
 
 export const earliestDate = parse(recordDates.at(0)!, keyFormat, new Date())
 export const latestDate = parse(recordDates.at(-1)!, keyFormat, new Date())
-
-const dateSpan = differenceInDays(
-  startOfDay(latestDate),
-  startOfDay(earliestDate),
+export const days: Date[] = eachDayOfInterval({
+  start: earliestDate,
+  end: latestDate,
+})
+export const fullDays = new Set(
+  Object.entries(
+    countBy(recordDates, (key) =>
+      format(startOfDay(parse(key, keyFormat, new Date())), keyFormat),
+    ),
+  )
+    .filter(([key, count]) => count === 48)
+    .map(([key]) => key),
 )
-export const days: Date[] = range(dateSpan + 1)
-  .map((dayIndex) => addDays(earliestDate, dayIndex))
-  .map(startOfDay)
 
 // LOT RECORD PARSING
 
