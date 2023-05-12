@@ -8,7 +8,7 @@ import {
 import { FeatureCollection, Point, Polygon } from 'geojson'
 import { countBy } from 'lodash-es'
 import lotRecordsJson from '../../lotRecords.json'
-import isochroneString from '../../parking_lot_isochrones_500m.geojson?raw'
+import isochroneString from '../../parking_lot_isochrones.geojson?raw'
 import { LotStatus, parseLotStatus } from './status'
 
 // ISOCHRONES
